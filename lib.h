@@ -1,4 +1,0 @@
-/**
-  Funções auxiliares do projecto
- */
-
