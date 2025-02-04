@@ -6,7 +6,7 @@
 #include <time.h>
 #include <stdint.h>
 
-#define INICIAL 10
+#define INICIAL 10 // nº de Threads/"clientes"
 
 typedef struct {
     int pnr;
