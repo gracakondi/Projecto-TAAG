@@ -15,7 +15,7 @@ typedef struct {
     int cancelamento;
 } buffer;
 
-buffer buff[INICIAL];
+buffer *buff;  // Mudança para alocação dinâmica
 
 pthread_mutex_t mutex;
 sem_t sem_reserva;
@@ -25,25 +25,36 @@ void* reserva(void* args);
 void* consulta(void* args);
 void ver_dados();
 void* Thread(void* args);
+void tratamento_interrupcao();
 
 int main() {
     pthread_t threads[INICIAL];
+    int i;
 
     srand(time(NULL));
 
+    // Alocação dinâmica de memória para o buffer
+    buff = (buffer*)malloc(INICIAL * sizeof(buffer));
+    if (buff == NULL) {
+        printf("Erro ao alocar memória para o buffer.\n");
+        return 1;
+    }
+
     pthread_mutex_init(&mutex, NULL);
-    sem_init(&sem_reserva, 0, 5); // Limite de 5 threads de reserva ao mesmo tempo
+    sem_init(&sem_reserva, 0, 5);  // Limite de 5 threads de reserva ao mesmo tempo
     sem_init(&sem_consulta, 0, 5); // Limite de 5 threads de consulta ao mesmo tempo
 
-    for (int i = 0; i < INICIAL; i++) {
+    for (i = 0; i < 10; i++) {
         intptr_t buffer_index = i;
         pthread_create(&threads[i], NULL, Thread, (void*)buffer_index);
     }
 
-    for (int i = 0; i < INICIAL; i++) {
+    for (i = 0; i < INICIAL; i++) {
         pthread_join(threads[i], NULL);
     }
 
+    // Liberação da memória alocada dinamicamente
+    free(buff);
     pthread_mutex_destroy(&mutex);
     sem_destroy(&sem_reserva);
     sem_destroy(&sem_consulta);
@@ -54,7 +65,8 @@ int main() {
 
 void* reserva(void* args) {
     sem_wait(&sem_reserva);
-    sleep(1);
+    tratamento_interrupcao();  // Simula interrupção durante a operação
+
     int buf_index = (intptr_t)args;
     int pnr = (unsigned int)pthread_self();
 
@@ -74,7 +86,8 @@ void* reserva(void* args) {
 
 void* consulta(void* args) {
     sem_wait(&sem_consulta);
-    sleep(1);
+    tratamento_interrupcao();  // Simula interrupção durante a operação
+
     int buf_index = (intptr_t)args;
     int pnr = (unsigned int)pthread_self();
 
@@ -93,9 +106,10 @@ void* consulta(void* args) {
 }
 
 void ver_dados() {
+    int i; 
     pthread_mutex_lock(&mutex);
     printf("\n=== DADOS ATUAIS ===\n");
-    for (int i = 0; i < INICIAL; i++) {
+    for (i = 0; i < INICIAL; i++) {
         printf("PNR: %d | Reserva: %d | Consulta: %d | Cancelamento: %d\n",
                buff[i].pnr, buff[i].reserva, buff[i].consulta, buff[i].cancelamento);
     }
@@ -104,8 +118,8 @@ void ver_dados() {
 
 void* Thread(void* args) {
     int index = (intptr_t)args;
-
-    for (int i = 0; i < 5; i++) {
+    int i; 
+    for (i = 0; i < 5; i++) {
         int f = rand() % 2;
         pthread_t thread;
 
@@ -119,4 +133,9 @@ void* Thread(void* args) {
     }
 
     return NULL;
+}
+
+// Função para simular a interrupção durante o processo
+void tratamento_interrupcao() {
+    sleep(1);  // Simula uma "interrupção" do processo, com uma pausa de 1 segundo
 }
